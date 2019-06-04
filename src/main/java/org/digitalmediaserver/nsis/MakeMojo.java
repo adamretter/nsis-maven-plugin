@@ -293,12 +293,25 @@ public class MakeMojo extends AbstractMojo implements ProcessOutputConsumer {
 			Path path = Paths.get(makensisExecutable);
 			makensisExecutable = path.toRealPath().toString();
 			if (autoNsisDir && isBlank(nsisDir)) {
+				if (Files.isSymbolicLink(path)) {
+					path = path.toRealPath();
+				}
 				path = path.getParent();
 				if (path != null) {
 					path = path.toRealPath();
 					Path fileName = path.getFileName();
 					if (fileName != null && "bin".equals(fileName.toString().toLowerCase(Locale.ROOT))) {
 						path = path.getParent();
+					}
+
+					// macOS Homebrew!
+					if (OSTYPE == OSType.MACOS) {
+						if (path.toString().contains("/Cellar/")) {
+							Path shareNsis = path.resolve("share/nsis");
+							if (Files.exists(shareNsis)) {
+								path = shareNsis;
+							}
+						}
 					}
 				}
 				nsisDir = path == null ? null : path.toString();
