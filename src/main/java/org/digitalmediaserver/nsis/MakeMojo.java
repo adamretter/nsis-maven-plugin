@@ -291,7 +291,7 @@ public class MakeMojo extends AbstractMojo implements ProcessOutputConsumer {
 		// Convert path separators
 		try {
 			Path path = Paths.get(makensisExecutable).toRealPath();
-			makensisExecutable = path.toRealPath().toString();
+			makensisExecutable = path.toString();
 			if (autoNsisDir && isBlank(nsisDir)) {
 				if (Files.isSymbolicLink(path)) {
 					path = path.toRealPath();
