@@ -290,8 +290,24 @@ public class MakeMojo extends AbstractMojo implements ProcessOutputConsumer {
 
 		// Convert path separators
 		try {
-			Path path = Paths.get(makensisExecutable).toRealPath();
+
+			// resolve makensis
+			Path path = Paths.get(makensisExecutable);
+			if (!Files.exists(path)) {
+				getLog().warn("Executable for makensis: '" + makensisExecutable + "' not found. Will search PATH environment variable...");
+				final Path makeNsisEnvPath = resolveFromEnvPath(makensisExecutable);
+				if (makeNsisEnvPath != null) {
+					path = makeNsisEnvPath;
+					getLog().info("Found Executable for makensis: '" + path + "'.");
+				} else {
+					getLog().warn("Could not find executable for makensis: '" + makensisExecutable + "' within PATH environment variable!");
+				}
+			}
+
+			path = path.toRealPath();
+
 			makensisExecutable = path.toString();
+
 			if (autoNsisDir && isBlank(nsisDir)) {
 				path = path.getParent();
 				if (path != null) {
@@ -477,5 +493,39 @@ public class MakeMojo extends AbstractMojo implements ProcessOutputConsumer {
 			outputFile.substring(0, dot) + classifierWithHyphenPrefix + outputFile.substring(dot) :
 			outputFile + classifierWithHyphenPrefix;
 		return baseFolder == null ? Paths.get(outputFile) : baseFolder.resolve(outputFile);
+	}
+
+	/**
+	 * Finds the first instance of {@code filename}
+	 * which exists in the filesystem paths specified
+	 * by the system's {@code PATH} environment variable.
+	 *
+	 * @param filename the filename to resolve
+	 *
+	 * @return the absolute path of {@code filename}, or null
+	 */
+	private Path resolveFromEnvPath(final String filename) {
+		final String envPath = System.getenv("PATH");
+		if (envPath == null) {
+			return null;
+		}
+
+		final String pathSeparator = System.getProperty("path.separator");
+		if (pathSeparator == null) {
+			return null;
+		}
+
+		final String[] paths = envPath.split(pathSeparator.substring(0, 1));
+		for (final String path : paths) {
+			if (getLog().isDebugEnabled()) {
+				getLog().debug("Searching '" + path + "' from PATH environment variable...");
+			}
+			final Path p = Paths.get(path, filename);
+			if (Files.exists(p)) {
+				return p.normalize().toAbsolutePath();
+			}
+		}
+
+		return null;
 	}
 }
